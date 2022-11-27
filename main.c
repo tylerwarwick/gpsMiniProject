@@ -3,10 +3,7 @@
 #include <string.h>
 #include <math.h>
 
-/*
-Issues:
-Newspace character is being included in name string
-*/
+
 #define nameBuf 25
 
 struct position
@@ -37,41 +34,78 @@ struct user_t *closestUser(struct user_t otherUsers[], int size);
 
 int main(void)
 {
-    FILE *inputFile = openInputFile("sample_users.txt");
-
-    //First fill out all of our struct's data
-    //Get the number of other users first
-    char amountC[5];
-    fgets(amountC, sizeof(amountC), inputFile);
-    int amount = atoi(&amountC[0]);
-
-    //Initialize our user and array of other users
-    struct user_t our_user;
-    struct user_t other_users[amount];
-
-    //Store our user's data in corresponding struct
-    fillOutStruct(&our_user, inputFile);
+    //Get input file from user
+    printf("Enter a file with the name (as well as path if necessary): ");
     
+    char input[1024];
+    char *inputStrings[256];            
+                                
+    char delimit[]=" \t\r\n\v\f"; 
+    int argumentCounter = 0;
 
-    //Fill out array of other users
-    for (int i = 0; i < amount; i++)
+    if(fgets(input, sizeof input, stdin))                             
+        {                                        
+            inputStrings[argumentCounter] = strtok(input, delimit);    
+            while(inputStrings[argumentCounter] != NULL)                    
+            {
+                argumentCounter++;
+                inputStrings[argumentCounter]=strtok(NULL,delimit);
+            }
+        }
+
+
+    //If users enters a file name then attempt to open it
+    if (argumentCounter == 1)
     {
-        fillOutStruct(&other_users[i], inputFile);
+        //Attempt to open file given to use from user
+        //If file doesn't exist then print ivalid message and exit
+        FILE *inputFile = openInputFile(inputStrings[0]);
+
+        //First fill out all of our struct's data
+        //Get the number of other users first
+        char amountC[5];
+        fgets(amountC, sizeof(amountC), inputFile);
+        int amount = atoi(&amountC[0]);
+
+        //Initialize our user and array of other users
+        struct user_t our_user;
+        struct user_t other_users[amount];
+
+        //Store our user's data in corresponding struct
+        fillOutStruct(&our_user, inputFile);
+        
+
+        //Fill out array of other users
+        for (int i = 0; i < amount; i++)
+        {
+            fillOutStruct(&other_users[i], inputFile);
+        }
+        
+
+        //Can close our file now because we've taken the data from it
+        fclose(inputFile);
+
+
+        //Get the distances away and find the closest neighbour to our_user
+        distanceFromOurUser(our_user, other_users, amount);
+        struct user_t *closestPtr = closestUser(other_users, amount);
+
+        printf("Closest person is %s\nHe is %0.2fm away\n", closestPtr->name, closestPtr->distanceAway);
+    }
+
+    //If user enters too many agruments (more than 1), exit the program
+    else 
+    {
+        perror("Invalid file inputted");
+        exit(1);
     }
     
 
-    //Can close our file now because we've taken the data from it
-    fclose(inputFile);
-
-
-    //Get the distances away and find the closest neighbour to our_user
-    distanceFromOurUser(our_user, other_users, amount);
-    struct user_t *closestPtr = closestUser(other_users, amount);
-
-    printf("Closest person is %s\nHe is %0.2f km away\n", closestPtr->name, closestPtr->distanceAway);
+  
 
 }
 
+//Opens file to be read from
 FILE* openInputFile(char* n)
 {       
     FILE * readingFile = fopen(n, "r");
@@ -85,7 +119,7 @@ FILE* openInputFile(char* n)
     return readingFile;
 }   
 
-//Store names in user structs
+//Store names in user's name
 void storeName(char *name, FILE* inputFile)
 {
     fgets(name, nameBuf, inputFile);
